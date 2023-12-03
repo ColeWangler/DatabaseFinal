@@ -17,7 +17,9 @@ public class DatabaseFinal {
 
     private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
     private static String user = "postgres";
-    private static String password = "ColeyJ56!";
+    private static String password = "Archer54";
+    
+    
     /**
      * @param args the command line arguments
      */
