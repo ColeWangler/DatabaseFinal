@@ -39,9 +39,10 @@ public class DatabaseFinal {
                     System.out.println("Please Enter 2 to View Items in a customers cart: ");
                     System.out.println("Please enter 3 to Get Total Cost of a customers cart:");
                     System.out.println("Please press 4 to Exit the Application: ");
+                    System.out.println("Please press 5 to see the Store menu: ");
                     menuSelection = scan.nextInt();
                     
-                    if( menuSelection == 1 || menuSelection == 2 || menuSelection == 3 || menuSelection == 4 )
+                    if( menuSelection == 1 || menuSelection == 2 || menuSelection == 3 || menuSelection == 4 || menuSelection == 5 || menuSelection == 6)
                         validOption = true;
                     else
                         System.out.println("Not a valid option.");
@@ -66,6 +67,12 @@ public class DatabaseFinal {
                 case 4:
                     exit = true;
                     break;
+                case 5: 
+                   Store.menuOperation();
+                   break;
+                default:
+                    System.out.println("Invalid option. Please try again.");
+                    try{System.out.wait(2000);}catch(Exception ex){System.out.println(ex.getMessage());}
             }
         } while (exit == false);
     }
