@@ -26,7 +26,7 @@ public class Store {
         System.out.println("========================================\n"); //divider
         
         
-        System.out.println("Aa) View All Stores");
+        System.out.println("Aa) View Stores");
         System.out.println("Bb) Add a Store");
         System.out.println("Cc) Delete a Store");
         System.out.println("Dd) Update a Store Record");
@@ -43,9 +43,9 @@ public class Store {
             printStoreMenu();
             String input = scan.nextLine();
             
-            switch(input){
+            switch(input.trim()){
                 case "A", "a" : 
-                    //functionality;
+                    viewStores();
                     break;
                 case"B", "b" : 
                     System.out.println("B was chosen");
@@ -68,7 +68,7 @@ public class Store {
         }while(returnToMenu);
     }
     
-    private void viewStores(){
+    private static void viewStores(){
         
         System.out.print("Enter the name of a store or type All to view all stores: ");
         String store = scan.nextLine();
@@ -82,18 +82,18 @@ public class Store {
             Connection conn = DriverManager.getConnection(url, username, password);
             
             if(store.trim().equalsIgnoreCase("all") || store.trim().equals("")){
-                query = "SELECT * FROM stores join store_locations "
-                    + "on stores.store_id = store_locations.store_id";
-                pstmt = conn.prepareStatement(query);
+                query = "SELECT * FROM store join store_locations "
+                    + "on store.store_id = store_locations.store_id";
+                pstmt = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
                 printStores(pstmt);
                 
                 return;
             }
             
-            query = "SELECT * FROM stores join store_locations "
-                    + "on stores.store_id = store_locations.store_id"
-                    + " where lower(store_name) like '?'";
-            pstmt = conn.prepareStatement(query);
+            query = "SELECT * FROM store join store_locations "
+                    + "on store.store_id = store_locations.store_id"
+                    + " where lower(store_name) like ?";
+            pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, store);
             printStores(pstmt);
         }
@@ -101,21 +101,46 @@ public class Store {
             System.out.println(cnfe.getMessage());
         }
         catch(SQLException sqlex){
-            sqlex.printStackTrace();
+            System.out.println(sqlex.getMessage());
         }
         
     }
     
-    private void addStore(){
+    private static void addStore(){
         
     }
     
-    private void updateStore(){
+    private static void updateStore(){
         
     }
     
-    private void printStores(PreparedStatement query){
+    private static void deleteStore(){
         
+    }
+    
+    private static void printStores(PreparedStatement query){
+        
+        try{
+        ResultSet rs = query.executeQuery();
+        
+        if(!rs.next())
+            throw new NullPointerException("Invalid Store Name.");
+        rs.previous();
+        
+        String divider = "+--------------------------------+----------------------------------------------------------------------------------+";
+        System.out.println(divider);
+        System.out.printf("| %-30s | %-80s |\n", "Store Name", "Store Address");
+        System.out.println(divider);
+        
+        while(rs.next()){
+            Address storeAddress = new Address(rs.getInt("postal_code"), rs.getString("street"), rs.getString("city"), rs.getString("location_state"), rs.getInt("zip_code"), rs.getString("country"));
+            System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), storeAddress.toString());
+            System.out.println(divider);
+        }
+        
+        }
+        catch(SQLException sqlex){sqlex.printStackTrace();}
+        catch(NullPointerException npe){System.out.println(npe.getMessage());}
     }
     
 }
