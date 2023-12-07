@@ -72,7 +72,6 @@ public class DatabaseFinal {
                    break;
                 default:
                     System.out.println("Invalid option. Please try again.");
-                    try{System.out.wait(2000);}catch(Exception ex){System.out.println(ex.getMessage());}
             }
         } while (exit == false);
     }
