@@ -167,6 +167,53 @@ public class Store {
     }
     
     private static void deleteStore(){
+        int toDelete;
+        do{
+        toDelete = readInt("Press 1 to delete a location and 2 to delete a store: ");
+        }while(toDelete < 1 || toDelete > 2);
+        
+        if(toDelete == 1){
+            viewStores();
+            try{
+            String locationQuery = "DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND"
+                    + " city = ? AND location_state = ? AND zip_code = ? AND country = ?";
+            
+            Class.forName("org.postgresql.Driver");
+            
+            Connection conn = DriverManager.getConnection(url, username, password);
+            
+            PreparedStatement pLocation = conn.prepareStatement(locationQuery);
+
+            //get user input
+            int postalCode = readInt("Enter postal code: ");
+            String street = readString("Enter street: ");
+            String city = readString("Enter city: ");
+            String state = readString("Enter state: ");
+            int zip = readInt("Enter zip code: ");
+            String country = readString("Enter country: ");
+            
+            //delete location
+            pLocation.setInt(1, postalCode);
+            pLocation.setString(2,street);
+            pLocation.setString(3, city);
+            pLocation.setString(4, state);
+            pLocation.setInt(5, zip);
+            pLocation.setString(6, country);
+            int locationCount = pLocation.executeUpdate();
+            
+            conn.close();
+        }
+        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+            
+            return;
+        }
+        
+        //DELETE STORE:
+            //Ask name of store to delete. 
+            //multiple delete statements unless better way. Need to delete locations, items sold from store, and discount entries 
+        
+        
         
     }
     
@@ -185,8 +232,8 @@ public class Store {
         System.out.println(divider);
         
         while(rs.next()){
-            Address storeAddress = new Address(rs.getInt("postal_code"), rs.getString("street"), rs.getString("city"), rs.getString("location_state"), rs.getInt("zip_code"), rs.getString("country"));
-            System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), storeAddress.toString());
+            String address = rs.getInt("postal_code") + " " + rs.getString("street")+ " " + rs.getString("city")+ " " + rs.getString("location_state")+ " " + rs.getInt("zip_code")+ " " + rs.getString("country");
+            System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), address);
             System.out.println(divider);
         }
         
@@ -254,6 +301,8 @@ public class Store {
          return hasStore;
     }
     
-   
+   public static void main(String[] args){
+       deleteStore();
+   }
     
 }
