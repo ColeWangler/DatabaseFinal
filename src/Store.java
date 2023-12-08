@@ -48,13 +48,13 @@ public class Store {
                     viewStores();
                     break;
                 case"B", "b" : 
-                    System.out.println("B was chosen");
+                    addStore();
                     break;
                 case "C", "c" : 
-                    //functionality;
+                    deleteStore();
                     break;
                 case"D", "d" :  
-                    //functionality;
+                    updateStore();
                     break;
                 case"Q", "q" : 
                     returnToMenu = false; 
@@ -96,6 +96,8 @@ public class Store {
             pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, store);
             printStores(pstmt);
+            
+            conn.close();
         }
         catch(ClassNotFoundException cnfe){
             System.out.println(cnfe.getMessage());
@@ -107,7 +109,57 @@ public class Store {
     }
     
     private static void addStore(){
-        
+        try{
+            String storeQuery = "INSERT INTO store (store_name) VALUES (?)";
+            String locationQuery = "INSERT INTO store_locations (postal_code, street, city, location_state, zip_code, country, store_id)"
+                    + " VALUES (?, ?, ?, ?, ?, ?, ?)";
+            
+            Class.forName("org.postgresql.Driver");
+            
+            Connection conn = DriverManager.getConnection(url, username, password);
+            
+            PreparedStatement pStore = conn.prepareStatement(storeQuery);
+            PreparedStatement pLocation = conn.prepareStatement(locationQuery);
+
+            //get user input
+            String storeName = readString("Enter store name: ");
+            int postalCode = readInt("Enter postal code: ");
+            String street = readString("Enter street: ");
+            String city = readString("Enter city: ");
+            String state = readString("Enter state: ");
+            int zip = readInt("Enter zip code: ");
+            String country = readString("Enter country: ");
+            
+            //insert new store if not already exists
+            if(hasStore(storeName)){
+                pStore.setString(1,storeName);
+                int storeCount = pStore.executeUpdate();
+            }
+            
+            //get store's primary key
+            String query = "SELECT * from store where store_name like ?";
+            PreparedStatement pstat = conn.prepareStatement(query);
+            pstat.setString(1,storeName);
+            ResultSet rs = pstat.executeQuery();
+            
+            int storeID = -1; //initialize as invalid value
+            while(rs.next()) 
+                storeID = rs.getInt("store_id");
+            
+            //insert location
+            pLocation.setInt(1, postalCode);
+            pLocation.setString(2,street);
+            pLocation.setString(3, city);
+            pLocation.setString(4, state);
+            pLocation.setInt(5, zip);
+            pLocation.setString(6, country);
+            pLocation.setInt(7, storeID);
+            int locationCount = pLocation.executeUpdate();
+            
+            conn.close();
+        }
+        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
     private static void updateStore(){
@@ -142,5 +194,66 @@ public class Store {
         catch(SQLException sqlex){sqlex.printStackTrace();}
         catch(NullPointerException npe){System.out.println(npe.getMessage());}
     }
+    
+    private static int readInt(String prompt){
+        int returnInt = -1;
+        
+        do{
+            System.out.print(prompt);
+            String line = scan.nextLine().trim();
+            Scanner scanLine = new Scanner(line);
+            try{
+                if(scanLine.hasNextInt()){
+                    returnInt = Integer.parseInt(line);
+                    break;
+                }  
+            }catch(NumberFormatException nfe){}
+            System.out.println("Invalid input: must be an integer.");
+        }while(true);
+        
+        return returnInt;  
+    }
+    
+    private static String readString(String prompt){
+        System.out.print(prompt);
+        String returnStr = scan.nextLine();
+        
+        while(returnStr.isBlank()){
+            System.out.println("No input given. Try again.");
+            System.out.print(prompt);
+            returnStr = scan.nextLine();
+        }
+        
+        return returnStr;
+    }
+    
+    public static boolean hasStore(String store){
+        boolean hasStore = false;
+        
+         try{
+            String query = "SELECT * FROM store where lower(store_name) like ?";
+            PreparedStatement pstmt;
+            Class.forName("org.postgresql.Driver");
+            
+            Connection conn = DriverManager.getConnection(url, username, password);
+            
+            pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            pstmt.setString(1, store);
+            ResultSet rs = pstmt.executeQuery();
+            if(rs.next()) hasStore = true;
+            
+            conn.close();
+        }
+        catch(ClassNotFoundException cnfe){
+            cnfe.printStackTrace();
+        }
+        catch(SQLException sqlex){
+            sqlex.printStackTrace();
+        }
+         
+         return hasStore;
+    }
+    
+   
     
 }
