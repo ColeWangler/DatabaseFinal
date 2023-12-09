@@ -27,9 +27,10 @@ public class Store {
         
         
         System.out.println("Aa) View Stores");
-        System.out.println("Bb) Add a Store");
-        System.out.println("Cc) Delete a Store");
-        System.out.println("Dd) Update a Store Record");
+        System.out.println("Bb) View Store Items");
+        System.out.println("Cc) Add a Store");
+        System.out.println("Dd) Delete a Store");
+        System.out.println("Ee) Update a Store Record");
         System.out.println("Qq) Exit Store Menu");
         System.out.print("\nPlease enter an option: ");
         
@@ -55,6 +56,9 @@ public class Store {
                     break;
                 case"D", "d" :  
                     updateStore();
+                    break;
+                case"E", "e" :
+                    viewStoreItems();
                     break;
                 case"Q", "q" : 
                     returnToMenu = false; 
@@ -85,7 +89,7 @@ public class Store {
                 query = "SELECT * FROM store join store_locations "
                     + "on store.store_id = store_locations.store_id";
                 pstmt = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                printStores(pstmt);
+                printStoreLocations(pstmt);
                 
                 return;
             }
@@ -95,7 +99,7 @@ public class Store {
                     + " where lower(store_name) like ?";
             pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, store);
-            printStores(pstmt);
+            printStoreLocations(pstmt);
             
             conn.close();
         }
@@ -106,6 +110,45 @@ public class Store {
             System.out.println(sqlex.getMessage());
         }
         
+    }
+    
+    private static void viewStoreItems(){
+        try{
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(url, username, password);
+            
+            String query = "SELECT st.store_name, i.item_name, i.cost, d.amount_off FROM " +
+                           "store st join sells se on st.store_id = se.store_id " +
+                           "join items i on se.item_id = i.item_id " +
+                           "left join discounts d on st.store_id = d.store_id AND i.item_id = d.item_id " +
+                           "WHERE st.store_id = ? " +
+                           "order by st.store_name";
+            PreparedStatement storeItems = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            
+            String storeName = readString("Enter store name to view items: ");
+            if(!hasStore(storeName)){
+                System.out.println("Invalid Store Name.");
+                return;
+            }
+            
+            String idQuery = "SELECT store_id FROM store where store_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,storeName);
+            ResultSet rs = idStatement.executeQuery();
+            rs.next();
+            int storeID = rs.getInt("store_id");
+            
+            storeItems.setInt(1, storeID);
+            printStoreItems(storeItems);
+            
+            conn.close();
+        }
+        catch(ClassNotFoundException cnfe){
+            System.out.println(cnfe.getMessage());
+        }
+        catch(SQLException sqlex){
+            System.out.println(sqlex.getMessage());
+        }
     }
     
     private static void addStore(){
@@ -244,7 +287,7 @@ public class Store {
         
     }
     
-    private static void printStores(PreparedStatement query){
+    private static void printStoreLocations(PreparedStatement query){
         
         try{
         ResultSet rs = query.executeQuery();
@@ -261,6 +304,30 @@ public class Store {
         while(rs.next()){
             String address = rs.getInt("postal_code") + " " + rs.getString("street")+ " " + rs.getString("city")+ " " + rs.getString("location_state")+ " " + rs.getInt("zip_code")+ " " + rs.getString("country");
             System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), address);
+            System.out.println(divider);
+        }
+        
+        }
+        catch(SQLException sqlex){sqlex.printStackTrace();}
+        catch(NullPointerException npe){System.out.println(npe.getMessage());}
+    }
+    
+    private static void printStoreItems(PreparedStatement query){
+        try{
+        ResultSet rs = query.executeQuery();
+        
+        if(!rs.next())
+            throw new NullPointerException("Invalid Store Name.");
+        rs.previous();
+        
+        String divider = "+-----------------+----------------------+---------+--------------+";
+        System.out.println(divider);
+        System.out.printf("| %-15s | %-20s | %-7s | %-12s |\n", "Store", "Item", "Cost", "Amount Off");
+        System.out.println(divider);
+        
+        while(rs.next()){
+           
+            System.out.printf("| %-15s | %-20s | $%6.2f | $%11.2f |\n", rs.getString("store_name"), rs.getString("item_name"), rs.getDouble("cost"), rs.getDouble("amount_off"));
             System.out.println(divider);
         }
         
@@ -290,12 +357,12 @@ public class Store {
     
     private static String readString(String prompt){
         System.out.print(prompt);
-        String returnStr = scan.nextLine();
+        String returnStr = scan.nextLine().trim();
         
         while(returnStr.isBlank()){
             System.out.println("No input given. Try again.");
             System.out.print(prompt);
-            returnStr = scan.nextLine();
+            returnStr = scan.nextLine().trim();
         }
         
         return returnStr;
@@ -328,8 +395,10 @@ public class Store {
          return hasStore;
     }
     
+   
+    
    public static void main(String[] args){
-       deleteStore();
+       viewStoreItems();
    }
     
 }
