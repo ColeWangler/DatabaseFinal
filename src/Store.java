@@ -24,17 +24,13 @@ public class Store {
     private static void printStoreMenu(){
         
         System.out.println("========================================\n"); //divider
-        
-        
         System.out.println("Aa) View Stores");
         System.out.println("Bb) View Store Items");
         System.out.println("Cc) Add a Store");
         System.out.println("Dd) Delete a Store");
-        System.out.println("Ee) Update a Store Record");
+        System.out.println("Ee) Edit a Store's inventory");
         System.out.println("Qq) Exit Store Menu");
         System.out.print("\nPlease enter an option: ");
-        
-        
     }
     
     public static void menuOperation(){
@@ -45,28 +41,16 @@ public class Store {
             String input = scan.nextLine();
             
             switch(input.trim()){
-                case "A", "a" : 
-                    viewStores();
-                    break;
-                case"B", "b" : 
-                    addStore();
-                    break;
-                case "C", "c" : 
-                    deleteStore();
-                    break;
-                case"D", "d" :  
-                    updateStore();
-                    break;
-                case"E", "e" :
-                    viewStoreItems();
-                    break;
-                case"Q", "q" : 
+                case "A", "a" : viewStores(); break;
+                case "B", "b" : viewStoreItems(); break;
+                case "C", "c" : addStore(); break;
+                case "D", "d" : deleteStore(); break;
+                case "E", "e" : editInventory(); break;
+                case "Q", "q" : 
                     returnToMenu = false; 
                     System.out.println("================================================\n");
                     break;
-                default :  
-                    System.out.println("Invalid Option. Please try again.\n");
-                    break;
+                default : System.out.println("Invalid Option. Please try again.\n");
             }
             
         }while(returnToMenu);
@@ -79,37 +63,24 @@ public class Store {
         
         
         try{
-            String query = "";
             PreparedStatement pstmt;
             Class.forName("org.postgresql.Driver");
-            
             Connection conn = DriverManager.getConnection(url, username, password);
             
             if(store.trim().equalsIgnoreCase("all") || store.trim().equals("")){
-                query = "SELECT * FROM store join store_locations "
-                    + "on store.store_id = store_locations.store_id";
+                String query = "SELECT * FROM store join store_locations on store.store_id = store_locations.store_id";
                 pstmt = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
                 printStoreLocations(pstmt);
-                
                 return;
             }
-            
-            query = "SELECT * FROM store join store_locations "
-                    + "on store.store_id = store_locations.store_id"
-                    + " where lower(store_name) like ?";
+            String query = "SELECT * FROM store join store_locations on store.store_id = store_locations.store_id where lower(store_name) like ?";
             pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, store);
             printStoreLocations(pstmt);
-            
             conn.close();
         }
-        catch(ClassNotFoundException cnfe){
-            System.out.println(cnfe.getMessage());
-        }
-        catch(SQLException sqlex){
-            System.out.println(sqlex.getMessage());
-        }
-        
+        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
     private static void viewStoreItems(){
@@ -117,12 +88,9 @@ public class Store {
             Class.forName("org.postgresql.Driver");
             Connection conn = DriverManager.getConnection(url, username, password);
             
-            String query = "SELECT st.store_name, i.item_name, i.cost, d.amount_off FROM " +
-                           "store st join sells se on st.store_id = se.store_id " +
-                           "join items i on se.item_id = i.item_id " +
-                           "left join discounts d on st.store_id = d.store_id AND i.item_id = d.item_id " +
-                           "WHERE st.store_id = ? " +
-                           "order by st.store_name";
+            String query = "SELECT st.store_name, i.item_name, i.cost, d.amount_off FROM store st join sells se on st.store_id = se.store_id " +
+                           "join items i on se.item_id = i.item_id left join discounts d on st.store_id = d.store_id AND i.item_id = d.item_id " +
+                           "WHERE st.store_id = ? order by st.store_name";
             PreparedStatement storeItems = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             
             String storeName = readString("Enter store name to view items: ");
@@ -130,25 +98,56 @@ public class Store {
                 System.out.println("Invalid Store Name.");
                 return;
             }
-            
-            String idQuery = "SELECT store_id FROM store where store_name = ?";
-            PreparedStatement idStatement = conn.prepareStatement(idQuery);
-            idStatement.setString(1,storeName);
-            ResultSet rs = idStatement.executeQuery();
-            rs.next();
-            int storeID = rs.getInt("store_id");
+            int storeID = getStoreID(storeName);
             
             storeItems.setInt(1, storeID);
             printStoreItems(storeItems);
             
             conn.close();
         }
-        catch(ClassNotFoundException cnfe){
-            System.out.println(cnfe.getMessage());
+        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+    }
+    
+    private static void editInventory(){
+        try{
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(url, username, password);
+            int addOrDelete;
+            do{
+            addOrDelete = readInt("Press 1 to add item or 2 to delete item: ");
+            }while(addOrDelete < 1 || addOrDelete > 2);
+            
+            String storeName = readString("Enter store name to edit items: ");
+            if(!hasStore(storeName)){
+                System.out.println("Invalid Store Name.");
+                conn.close();
+                return;
+            }
+            int storeID = getStoreID(storeName);
+            
+            if(addOrDelete == 1){
+                String addItem = readString("Enter name of item to add: ");
+                int itemID = getItemID(addItem);
+                PreparedStatement insert = conn.prepareStatement("INSERT INTO sells (item_id, store_id) VALUES (?,?)");
+                insert.setInt(1, itemID);
+                insert.setInt(2,storeID);
+                insert.executeUpdate();
+                conn.close();
+                return;
+            }
+            
+            String deleteItem = readString("Enter name of item to delete: ");
+            int itemID = getItemID(deleteItem);
+            PreparedStatement delete = conn.prepareStatement("DELETE FROM sells WHERE item_id = ? AND store_id = ?");
+            delete.setInt(1, itemID);
+            delete.setInt(2,storeID);
+            delete.executeUpdate();
+            conn.close();
         }
-        catch(SQLException sqlex){
-            System.out.println(sqlex.getMessage());
-        }
+        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+        catch(IllegalArgumentException iae){System.out.println(iae.getMessage());}
     }
     
     private static void addStore(){
@@ -205,10 +204,6 @@ public class Store {
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
-    private static void updateStore(){
-        
-    }
-    
     private static void deleteStore(){
         int toDelete;
         do{
@@ -260,13 +255,7 @@ public class Store {
                 System.out.println("Invalid Store Name.");
                 return;
             }
-            
-            String idQuery = "SELECT store_id FROM store where store_name = ?";
-            PreparedStatement idStatement = conn.prepareStatement(idQuery);
-            idStatement.setString(1,storeName);
-            ResultSet rs = idStatement.executeQuery();
-            rs.next();
-            int storeID = rs.getInt("store_id");
+            int storeID = getStoreID(storeName);
             
             //delete records from sells, discounts, store_locations, and store
             sellsStatement.setInt(1,storeID);
@@ -395,10 +384,41 @@ public class Store {
          return hasStore;
     }
     
-   
+    //This method should ONLY be used after checking storeName with hasStore(storeName)
+    private static int getStoreID(String storeName){
+        ResultSet rs;
+        int storeID = -1;
+        try{
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(url, username, password);
+            String idQuery = "SELECT store_id FROM store where store_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,storeName);
+            rs = idStatement.executeQuery();
+            rs.next();
+            storeID = rs.getInt("store_id");
+        }catch(ClassNotFoundException cnfe){cnfe.printStackTrace();}
+        catch(SQLException sqlex){sqlex.printStackTrace();}
+        
+        return storeID;
+    }
     
-   public static void main(String[] args){
-       viewStoreItems();
-   }
+    private static int getItemID(String itemName) throws IllegalArgumentException{
+        ResultSet rs;
+        int itemID = -1;
+        try{
+            Class.forName("org.postgresql.Driver");
+            Connection conn = DriverManager.getConnection(url, username, password);
+            String idQuery = "SELECT item_id FROM items where item_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,itemName);
+            rs = idStatement.executeQuery();
+            rs.next();
+            itemID = rs.getInt("item_id");
+        }catch(ClassNotFoundException cnfe){}
+        catch(SQLException sqlex){}
+        if(itemID == -1) throw new IllegalArgumentException("Item not found in item list.");
+        return itemID;
+    }
     
 }
