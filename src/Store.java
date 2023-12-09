@@ -172,48 +172,75 @@ public class Store {
         toDelete = readInt("Press 1 to delete a location and 2 to delete a store: ");
         }while(toDelete < 1 || toDelete > 2);
         
-        if(toDelete == 1){
-            viewStores();
-            try{
-            String locationQuery = "DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND"
-                    + " city = ? AND location_state = ? AND zip_code = ? AND country = ?";
-            
+        try{ 
             Class.forName("org.postgresql.Driver");
-            
+
             Connection conn = DriverManager.getConnection(url, username, password);
             
-            PreparedStatement pLocation = conn.prepareStatement(locationQuery);
+            //Delete store location
+            if(toDelete == 1){
+                viewStores();
+                
+                String locationQuery = "DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND"
+                        + " city = ? AND location_state = ? AND zip_code = ? AND country = ?";
+                PreparedStatement pLocation = conn.prepareStatement(locationQuery);
 
-            //get user input
-            int postalCode = readInt("Enter postal code: ");
-            String street = readString("Enter street: ");
-            String city = readString("Enter city: ");
-            String state = readString("Enter state: ");
-            int zip = readInt("Enter zip code: ");
-            String country = readString("Enter country: ");
+                //get user input
+                int postalCode = readInt("Enter postal code: ");
+                String street = readString("Enter street: ");
+                String city = readString("Enter city: ");
+                String state = readString("Enter state: ");
+                int zip = readInt("Enter zip code: ");
+                String country = readString("Enter country: ");
+
+                //delete location
+                pLocation.setInt(1, postalCode);
+                pLocation.setString(2,street);
+                pLocation.setString(3, city);
+                pLocation.setString(4, state);
+                pLocation.setInt(5, zip);
+                pLocation.setString(6, country);
+                int locationCount = pLocation.executeUpdate();
+
+                conn.close();
+                return;
+            }
+        
+            //delete store record(and associated records)
+            PreparedStatement sellsStatement = conn.prepareStatement("DELETE FROM sells WHERE sells.store_id = ?");
+            PreparedStatement discountStatement = conn.prepareStatement("DELETE FROM discounts WHERE discounts.store_id = ?");
+            PreparedStatement locationStatement = conn.prepareStatement("DELETE FROM store_locations WHERE store_locations.store_id = ?");
+            PreparedStatement storeStatement = conn.prepareStatement("DELETE FROM store WHERE store.store_id = ?");
             
-            //delete location
-            pLocation.setInt(1, postalCode);
-            pLocation.setString(2,street);
-            pLocation.setString(3, city);
-            pLocation.setString(4, state);
-            pLocation.setInt(5, zip);
-            pLocation.setString(6, country);
-            int locationCount = pLocation.executeUpdate();
+            String storeName = readString("Enter name of store to delete: ");
+            if(!hasStore(storeName)){
+                System.out.println("Invalid Store Name.");
+                return;
+            }
+            
+            String idQuery = "SELECT store_id FROM store where store_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,storeName);
+            ResultSet rs = idStatement.executeQuery();
+            rs.next();
+            int storeID = rs.getInt("store_id");
+            
+            //delete records from sells, discounts, store_locations, and store
+            sellsStatement.setInt(1,storeID);
+            discountStatement.setInt(1, storeID);
+            locationStatement.setInt(1, storeID);
+            storeStatement.setInt(1, storeID);
+            
+            sellsStatement.executeUpdate();
+            discountStatement.executeUpdate();
+            locationStatement.executeUpdate();
+            storeStatement.executeUpdate();
             
             conn.close();
+        
         }
         catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
-            
-            return;
-        }
-        
-        //DELETE STORE:
-            //Ask name of store to delete. 
-            //multiple delete statements unless better way. Need to delete locations, items sold from store, and discount entries 
-        
-        
         
     }
     
@@ -278,7 +305,7 @@ public class Store {
         boolean hasStore = false;
         
          try{
-            String query = "SELECT * FROM store where lower(store_name) like ?";
+            String query = "SELECT * FROM store where store_name like ?";
             PreparedStatement pstmt;
             Class.forName("org.postgresql.Driver");
             
