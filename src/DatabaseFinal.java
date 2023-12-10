@@ -53,7 +53,8 @@ public class DatabaseFinal {
                     System.out.println("Please press 9 to Add a Store: ");
                     System.out.println("Please press 10 to Delete a Store: ");
                     System.out.println("Please press 11 to Edit a Store Inventory: ");
-                    System.out.println("Please press 12 to Exit the Application: ");
+                    System.out.println("Please press 12 to View Discounts: ");
+                    System.out.println("Please press 13 to Exit the Application: ");
                     System.out.print("\nEnter Option: ");
                     
                     if( scan.hasNextInt()){
@@ -102,6 +103,33 @@ public class DatabaseFinal {
                     Store.editInventory(conn);
                     break;
                 case 12:
+                    System.out.println("What would you like to do?\n"
+                            + "1) View Discounts\n"
+                            + "2) Add a Discount\n"
+                            + "3) Remove a Discount\n");
+                    if( scan.hasNextInt()){
+                        menuSelection = scan.nextInt();
+                        
+                        if(!(menuSelection == 1 || menuSelection == 2 || menuSelection == 3)){
+                            System.out.println("Invalid option, returning to main menu.");
+                        break;
+                        }
+                        switch(menuSelection){
+                            case 1:
+                                break;
+                            case 2:
+                                break;
+                            case 3:
+                                break;
+                                
+                        }
+                    }
+                    else{
+                        System.out.println("Invalid option, returning to main menu.");
+                        String garbage = scan.nextLine();
+                    }
+                    break;
+                case 13:
                     exit = true;
                     try{conn.close();}catch(SQLException sqlex){}
                     break;
