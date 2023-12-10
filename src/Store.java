@@ -63,7 +63,6 @@ public class Store {
                 insert.setInt(1, itemID);
                 insert.setInt(2,storeID);
                 insert.executeUpdate();
-                conn.close();
                 return;
             }
             
@@ -73,7 +72,6 @@ public class Store {
             delete.setInt(1, itemID);
             delete.setInt(2,storeID);
             delete.executeUpdate();
-            conn.close();
         }
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
         catch(IllegalArgumentException iae){System.out.println(iae.getMessage());}
@@ -107,7 +105,7 @@ public class Store {
             if(toDelete == 1){
                 PreparedStatement pLocation = conn.prepareStatement("DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND city = ? AND location_state = ? AND zip_code = ? AND country = ?");
                 setPreparedLocation(pLocation);
-                conn.close();
+                pLocation.executeUpdate();
                 return;
             }
         
@@ -204,7 +202,7 @@ public class Store {
     public static boolean hasStore(String storeName, Connection conn){
         boolean hasStore = false;
          try{
-            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM store where lower(store_name like) ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM store where lower(store_name) like ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, storeName.toLowerCase());
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()) hasStore = true;
@@ -231,9 +229,9 @@ public class Store {
         ResultSet rs;
         int itemID = -1;
         try{
-            String idQuery = "SELECT item_id FROM items where item_name = ?";
+            String idQuery = "SELECT item_id FROM items where lower(item_name) like  ?";
             PreparedStatement idStatement = conn.prepareStatement(idQuery);
-            idStatement.setString(1,itemName);
+            idStatement.setString(1,itemName.toLowerCase());
             rs = idStatement.executeQuery();
             rs.next();
             itemID = rs.getInt("item_id");
