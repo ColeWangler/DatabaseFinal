@@ -103,7 +103,7 @@ public class DatabaseFinal {
                     break;
                 case 12:
                     exit = true;
-                    conn.close();
+                    try{conn.close();}catch(SQLException sqlex){}
                     break;
                 default:
                     System.out.println("Invalid option. Please try again.");
