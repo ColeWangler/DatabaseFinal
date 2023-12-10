@@ -30,7 +30,7 @@ public class Store {
         try{
             String query = "SELECT st.store_name, i.item_name, i.cost, d.amount_off FROM store st join sells se on st.store_id = se.store_id " +
                            "join items i on se.item_id = i.item_id left join discounts d on st.store_id = d.store_id AND i.item_id = d.item_id " +
-                           "WHERE st.store_id = ? order by st.store_name";
+                           "WHERE st.store_id = ? order by i.cost desc";
             PreparedStatement storeItems = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             
             String storeName = readString("Enter store name to view items: ");

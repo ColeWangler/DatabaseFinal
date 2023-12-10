@@ -60,8 +60,10 @@ public class DatabaseFinal {
                         validOption = true;
                         menuSelection = scan.nextInt();
                     }
-                    else
+                    else{
                         System.out.println("Not a valid option.");
+                        String garbage = scan.nextLine();
+                    }
             } while (validOption == false);
             
             int customerID;
