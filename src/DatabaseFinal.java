@@ -103,6 +103,7 @@ public class DatabaseFinal {
                     break;
                 case 12:
                     exit = true;
+                    conn.close();
                     break;
                 default:
                     System.out.println("Invalid option. Please try again.");
