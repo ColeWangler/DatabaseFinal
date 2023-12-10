@@ -7,244 +7,174 @@ import java.util.Scanner;
  * @version 2023.12.02
  */
 public class Store {
-    
-    //Instance variables
-    private  int store_id;
-    private  String store_name;
-    private  Address store_address;
-    private  int addresss_id;
-    private  int store_address_id;
-    
-    //Class util
     private static Scanner scan = new Scanner(System.in);
-    private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
-    private static String username = "postgres";
-    private static String password = "Archer54";
     
-    private static void printStoreMenu(){
-        
-        System.out.println("========================================\n"); //divider
-        
-        
-        System.out.println("Aa) View Stores");
-        System.out.println("Bb) Add a Store");
-        System.out.println("Cc) Delete a Store");
-        System.out.println("Dd) Update a Store Record");
-        System.out.println("Qq) Exit Store Menu");
-        System.out.print("\nPlease enter an option: ");
-        
-        
-    }
-    
-    public static void menuOperation(){
-        boolean returnToMenu = true;
-        
-        do{
-            printStoreMenu();
-            String input = scan.nextLine();
-            
-            switch(input.trim()){
-                case "A", "a" : 
-                    viewStores();
-                    break;
-                case"B", "b" : 
-                    addStore();
-                    break;
-                case "C", "c" : 
-                    deleteStore();
-                    break;
-                case"D", "d" :  
-                    updateStore();
-                    break;
-                case"Q", "q" : 
-                    returnToMenu = false; 
-                    System.out.println("================================================\n");
-                    break;
-                default :  
-                    System.out.println("Invalid Option. Please try again.\n");
-                    break;
-            }
-            
-        }while(returnToMenu);
-    }
-    
-    private static void viewStores(){
-        
-        System.out.print("Enter the name of a store or type All to view all stores: ");
-        String store = scan.nextLine();
-        
-        
+    public static void viewStores(Connection conn){
+        String store = readString("Enter the name of a store or type All to view all stores: ");
         try{
-            String query = "";
             PreparedStatement pstmt;
-            Class.forName("org.postgresql.Driver");
-            
-            Connection conn = DriverManager.getConnection(url, username, password);
-            
             if(store.trim().equalsIgnoreCase("all") || store.trim().equals("")){
-                query = "SELECT * FROM store join store_locations "
-                    + "on store.store_id = store_locations.store_id";
+                String query = "SELECT * FROM store join store_locations on store.store_id = store_locations.store_id";
                 pstmt = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-                printStores(pstmt);
-                
+                printStoreLocations(pstmt);
+                return;
+            }
+            pstmt = conn.prepareStatement("SELECT * FROM store join store_locations on store.store_id = store_locations.store_id where lower(store_name) like ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            pstmt.setString(1, store);
+            printStoreLocations(pstmt);
+        }
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+    }
+    
+    public static void viewStoreItems(Connection conn){
+        try{
+            String query = "SELECT st.store_name, i.item_name, i.cost, d.amount_off FROM store st join sells se on st.store_id = se.store_id " +
+                           "join items i on se.item_id = i.item_id left join discounts d on st.store_id = d.store_id AND i.item_id = d.item_id " +
+                           "WHERE st.store_id = ? order by st.store_name";
+            PreparedStatement storeItems = conn.prepareStatement(query,ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            
+            String storeName = readString("Enter store name to view items: ");
+            if(!hasStore(storeName, conn)){
+                System.out.println("Invalid Store Name.");
+                return;
+            }
+            int storeID = getStoreID(storeName, conn);
+            storeItems.setInt(1, storeID);
+            printStoreItems(storeItems);
+        }
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+    }
+    
+    public static void editInventory(Connection conn){
+        try{
+            int addOrDelete;
+            do{addOrDelete = readInt("Press 1 to add item or 2 to delete item: ");}while(addOrDelete < 1 || addOrDelete > 2);
+            String storeName = readString("Enter store name to edit items: ");
+            if(!hasStore(storeName,conn)){
+                System.out.println("Invalid Store Name.");
+                return;
+            }
+            int storeID = getStoreID(storeName, conn);
+            
+            if(addOrDelete == 1){
+                String addItem = readString("Enter name of item to add: ");
+                int itemID = getItemID(addItem, conn);
+                PreparedStatement insert = conn.prepareStatement("INSERT INTO sells (item_id, store_id) VALUES (?,?)");
+                insert.setInt(1, itemID);
+                insert.setInt(2,storeID);
+                insert.executeUpdate();
+                conn.close();
                 return;
             }
             
-            query = "SELECT * FROM store join store_locations "
-                    + "on store.store_id = store_locations.store_id"
-                    + " where lower(store_name) like ?";
-            pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            pstmt.setString(1, store);
-            printStores(pstmt);
-            
+            String deleteItem = readString("Enter name of item to delete: ");
+            int itemID = getItemID(deleteItem, conn);
+            PreparedStatement delete = conn.prepareStatement("DELETE FROM sells WHERE item_id = ? AND store_id = ?");
+            delete.setInt(1, itemID);
+            delete.setInt(2,storeID);
+            delete.executeUpdate();
             conn.close();
         }
-        catch(ClassNotFoundException cnfe){
-            System.out.println(cnfe.getMessage());
-        }
-        catch(SQLException sqlex){
-            System.out.println(sqlex.getMessage());
-        }
-        
+        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
+        catch(IllegalArgumentException iae){System.out.println(iae.getMessage());}
     }
     
-    private static void addStore(){
+    public static void addStore(Connection conn){
         try{
-            String storeQuery = "INSERT INTO store (store_name) VALUES (?)";
-            String locationQuery = "INSERT INTO store_locations (postal_code, street, city, location_state, zip_code, country, store_id)"
-                    + " VALUES (?, ?, ?, ?, ?, ?, ?)";
-            
-            Class.forName("org.postgresql.Driver");
-            
-            Connection conn = DriverManager.getConnection(url, username, password);
-            
-            PreparedStatement pStore = conn.prepareStatement(storeQuery);
-            PreparedStatement pLocation = conn.prepareStatement(locationQuery);
-
+            PreparedStatement pStore = conn.prepareStatement("INSERT INTO store (store_name) VALUES (?)");
+            PreparedStatement pLocation = conn.prepareStatement("INSERT INTO store_locations (postal_code, street, city, location_state, zip_code, country, store_id) VALUES (?, ?, ?, ?, ?, ?, ?)");
             //get user input
-            String storeName = readString("Enter store name: ");
-            int postalCode = readInt("Enter postal code: ");
-            String street = readString("Enter street: ");
-            String city = readString("Enter city: ");
-            String state = readString("Enter state: ");
-            int zip = readInt("Enter zip code: ");
-            String country = readString("Enter country: ");
-            
+            String storeName = readString("Enter store name: ");            
             //insert new store if not already exists
-            if(hasStore(storeName)){
+            if(!hasStore(storeName,conn)){
                 pStore.setString(1,storeName);
-                int storeCount = pStore.executeUpdate();
+                pStore.executeUpdate();
             }
-            
-            //get store's primary key
-            String query = "SELECT * from store where store_name like ?";
-            PreparedStatement pstat = conn.prepareStatement(query);
-            pstat.setString(1,storeName);
-            ResultSet rs = pstat.executeQuery();
-            
-            int storeID = -1; //initialize as invalid value
-            while(rs.next()) 
-                storeID = rs.getInt("store_id");
-            
+            int storeID = getStoreID(storeName, conn);
             //insert location
-            pLocation.setInt(1, postalCode);
-            pLocation.setString(2,street);
-            pLocation.setString(3, city);
-            pLocation.setString(4, state);
-            pLocation.setInt(5, zip);
-            pLocation.setString(6, country);
+            setPreparedLocation(pLocation);
             pLocation.setInt(7, storeID);
-            int locationCount = pLocation.executeUpdate();
-            
-            conn.close();
+            pLocation.executeUpdate();
         }
-        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
-    private static void updateStore(){
-        
-    }
-    
-    private static void deleteStore(){
+    public static void deleteStore(Connection conn){
         int toDelete;
-        do{
-        toDelete = readInt("Press 1 to delete a location and 2 to delete a store: ");
-        }while(toDelete < 1 || toDelete > 2);
+        do{toDelete = readInt("Press 1 to delete a location and 2 to delete a store: ");}while(toDelete < 1 || toDelete > 2);
+        try{
+            //Delete store location
+            if(toDelete == 1){
+                PreparedStatement pLocation = conn.prepareStatement("DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND city = ? AND location_state = ? AND zip_code = ? AND country = ?");
+                setPreparedLocation(pLocation);
+                conn.close();
+                return;
+            }
         
-        if(toDelete == 1){
-            viewStores();
-            try{
-            String locationQuery = "DELETE FROM store_locations WHERE postal_code = ? AND street = ? AND"
-                    + " city = ? AND location_state = ? AND zip_code = ? AND country = ?";
+            //delete store record(and associated records)
+            PreparedStatement sellsStatement = conn.prepareStatement("DELETE FROM sells WHERE sells.store_id = ?");
+            PreparedStatement discountStatement = conn.prepareStatement("DELETE FROM discounts WHERE discounts.store_id = ?");
+            PreparedStatement locationStatement = conn.prepareStatement("DELETE FROM store_locations WHERE store_locations.store_id = ?");
+            PreparedStatement storeStatement = conn.prepareStatement("DELETE FROM store WHERE store.store_id = ?");
             
-            Class.forName("org.postgresql.Driver");
+            String storeName = readString("Enter name of store to delete: ");
+            if(!hasStore(storeName, conn)){
+                System.out.println("Invalid Store Name.");
+                return;
+            }
+            int storeID = getStoreID(storeName, conn);
             
-            Connection conn = DriverManager.getConnection(url, username, password);
+            //delete records from sells, discounts, store_locations, and store
+            sellsStatement.setInt(1,storeID);
+            discountStatement.setInt(1, storeID);
+            locationStatement.setInt(1, storeID);
+            storeStatement.setInt(1, storeID);
             
-            PreparedStatement pLocation = conn.prepareStatement(locationQuery);
-
-            //get user input
-            int postalCode = readInt("Enter postal code: ");
-            String street = readString("Enter street: ");
-            String city = readString("Enter city: ");
-            String state = readString("Enter state: ");
-            int zip = readInt("Enter zip code: ");
-            String country = readString("Enter country: ");
-            
-            //delete location
-            pLocation.setInt(1, postalCode);
-            pLocation.setString(2,street);
-            pLocation.setString(3, city);
-            pLocation.setString(4, state);
-            pLocation.setInt(5, zip);
-            pLocation.setString(6, country);
-            int locationCount = pLocation.executeUpdate();
-            
-            conn.close();
-        }
-        catch(ClassNotFoundException cnfe){System.out.println(cnfe.getMessage());}
-        catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
-            
-            return;
-        }
-        
-        //DELETE STORE:
-            //Ask name of store to delete. 
-            //multiple delete statements unless better way. Need to delete locations, items sold from store, and discount entries 
-        
-        
-        
+            sellsStatement.executeUpdate();
+            discountStatement.executeUpdate();
+            locationStatement.executeUpdate();
+            storeStatement.executeUpdate();
+        }catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
-    private static void printStores(PreparedStatement query){
-        
+    private static void printStoreLocations(PreparedStatement query){
         try{
-        ResultSet rs = query.executeQuery();
-        
-        if(!rs.next())
-            throw new NullPointerException("Invalid Store Name.");
-        rs.previous();
-        
-        String divider = "+--------------------------------+----------------------------------------------------------------------------------+";
-        System.out.println(divider);
-        System.out.printf("| %-30s | %-80s |\n", "Store Name", "Store Address");
-        System.out.println(divider);
-        
-        while(rs.next()){
-            String address = rs.getInt("postal_code") + " " + rs.getString("street")+ " " + rs.getString("city")+ " " + rs.getString("location_state")+ " " + rs.getInt("zip_code")+ " " + rs.getString("country");
-            System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), address);
+            ResultSet rs = query.executeQuery();
+            if(!rs.next())throw new NullPointerException("Invalid Store Name.");
+            rs.previous();
+
+            String divider = "+--------------------------------+----------------------------------------------------------------------------------+";
             System.out.println(divider);
-        }
-        
-        }
-        catch(SQLException sqlex){sqlex.printStackTrace();}
-        catch(NullPointerException npe){System.out.println(npe.getMessage());}
+            System.out.printf("| %-30s | %-80s |\n", "Store Name", "Store Address");
+            System.out.println(divider); while(rs.next()){
+                String address = rs.getInt("postal_code") + " " + rs.getString("street")+ " " + rs.getString("city")+ " " + rs.getString("location_state")+ " " + rs.getInt("zip_code")+ " " + rs.getString("country");
+                System.out.printf("| %-30s | %-80s |\n", rs.getString("store_name"), address);
+                System.out.println(divider);
+            }
+        }catch(SQLException sqlex){sqlex.printStackTrace();}
+         catch(NullPointerException npe){System.out.println(npe.getMessage());}
+    }
+    
+    private static void printStoreItems(PreparedStatement query){
+        try{
+            ResultSet rs = query.executeQuery();
+            if(!rs.next()) throw new NullPointerException("Invalid Store Name.");
+            rs.previous();
+
+            String divider = "+-----------------+----------------------+---------+--------------+";
+            System.out.println(divider);
+            System.out.printf("| %-15s | %-20s | %-7s | %-12s |\n", "Store", "Item", "Cost", "Amount Off");
+            System.out.println(divider);
+            while(rs.next()){
+                System.out.printf("| %-15s | %-20s | $%6.2f | $%11.2f |\n", rs.getString("store_name"), rs.getString("item_name"), rs.getDouble("cost"), rs.getDouble("amount_off"));
+                System.out.println(divider);
+            }
+        }catch(SQLException sqlex){sqlex.printStackTrace();}
+         catch(NullPointerException npe){System.out.println(npe.getMessage());}
     }
     
     private static int readInt(String prompt){
         int returnInt = -1;
-        
         do{
             System.out.print(prompt);
             String line = scan.nextLine().trim();
@@ -257,52 +187,75 @@ public class Store {
             }catch(NumberFormatException nfe){}
             System.out.println("Invalid input: must be an integer.");
         }while(true);
-        
         return returnInt;  
     }
     
     private static String readString(String prompt){
         System.out.print(prompt);
-        String returnStr = scan.nextLine();
-        
+        String returnStr = scan.nextLine().trim();
         while(returnStr.isBlank()){
             System.out.println("No input given. Try again.");
             System.out.print(prompt);
-            returnStr = scan.nextLine();
+            returnStr = scan.nextLine().trim();
         }
-        
         return returnStr;
     }
     
-    public static boolean hasStore(String store){
+    public static boolean hasStore(String store, Connection conn){
         boolean hasStore = false;
-        
          try{
-            String query = "SELECT * FROM store where lower(store_name) like ?";
-            PreparedStatement pstmt;
-            Class.forName("org.postgresql.Driver");
-            
-            Connection conn = DriverManager.getConnection(url, username, password);
-            
-            pstmt = conn.prepareStatement(query, ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            String query = "SELECT * FROM store where store_name like ?"; 
+            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM store where store_name like ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
             pstmt.setString(1, store);
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()) hasStore = true;
-            
-            conn.close();
-        }
-        catch(ClassNotFoundException cnfe){
-            cnfe.printStackTrace();
-        }
-        catch(SQLException sqlex){
-            sqlex.printStackTrace();
-        }
-         
+         }catch(SQLException sqlex){sqlex.printStackTrace();}
          return hasStore;
     }
     
-   public static void main(String[] args){
-       deleteStore();
-   }
+    //This method should ONLY be used after checking storeName with hasStore(storeName)
+    private static int getStoreID(String storeName, Connection conn){
+        ResultSet rs;
+        int storeID = -1;
+        try{
+            String idQuery = "SELECT store_id FROM store where store_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,storeName);
+            rs = idStatement.executeQuery();
+            rs.next();
+            storeID = rs.getInt("store_id");
+        }catch(SQLException sqlex){sqlex.printStackTrace();}
+        return storeID;
+    }
     
+    private static int getItemID(String itemName, Connection conn) throws IllegalArgumentException{
+        ResultSet rs;
+        int itemID = -1;
+        try{
+            String idQuery = "SELECT item_id FROM items where item_name = ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,itemName);
+            rs = idStatement.executeQuery();
+            rs.next();
+            itemID = rs.getInt("item_id");
+        }
+        catch(SQLException sqlex){}
+        if(itemID == -1) throw new IllegalArgumentException("Item not found in item list.");
+        return itemID;
+    }
+    
+    private static void setPreparedLocation(PreparedStatement pLocation) throws SQLException{
+        int postalCode = readInt("Enter postal code: ");
+        String street = readString("Enter street: ");
+        String city = readString("Enter city: ");
+        String state = readString("Enter state: ");
+        int zip = readInt("Enter zip code: ");
+        String country = readString("Enter country: ");
+        pLocation.setInt(1, postalCode);
+        pLocation.setString(2, street);
+        pLocation.setString(3, city);
+        pLocation.setString(4, state);
+        pLocation.setInt(5, zip);
+        pLocation.setString(6,country);
+    } 
 }
