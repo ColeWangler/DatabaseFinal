@@ -20,7 +20,7 @@ public class Store {
                 return;
             }
             pstmt = conn.prepareStatement("SELECT * FROM store join store_locations on store.store_id = store_locations.store_id where lower(store_name) like ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            pstmt.setString(1, store);
+            pstmt.setString(1, store.toLowerCase());
             printStoreLocations(pstmt);
         }
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
@@ -201,12 +201,11 @@ public class Store {
         return returnStr;
     }
     
-    public static boolean hasStore(String store, Connection conn){
+    public static boolean hasStore(String storeName, Connection conn){
         boolean hasStore = false;
          try{
-            String query = "SELECT * FROM store where store_name like ?"; 
-            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM store where store_name like ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
-            pstmt.setString(1, store);
+            PreparedStatement pstmt = conn.prepareStatement("SELECT * FROM store where lower(store_name like) ?", ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY);
+            pstmt.setString(1, storeName.toLowerCase());
             ResultSet rs = pstmt.executeQuery();
             if(rs.next()) hasStore = true;
          }catch(SQLException sqlex){sqlex.printStackTrace();}
@@ -218,9 +217,9 @@ public class Store {
         ResultSet rs;
         int storeID = -1;
         try{
-            String idQuery = "SELECT store_id FROM store where store_name = ?";
+            String idQuery = "SELECT store_id FROM store where lower(store_name) like ?";
             PreparedStatement idStatement = conn.prepareStatement(idQuery);
-            idStatement.setString(1,storeName);
+            idStatement.setString(1,storeName.toLowerCase());
             rs = idStatement.executeQuery();
             rs.next();
             storeID = rs.getInt("store_id");
