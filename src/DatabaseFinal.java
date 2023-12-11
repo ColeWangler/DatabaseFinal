@@ -15,9 +15,9 @@ import java.util.Scanner;
  */
 public class DatabaseFinal {
 
-    private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
+    private static String url = "jdbc:postgresql://localhost:5432/Final";
     private static String user = "postgres";
-    private static String password = "Archer54";
+    private static String password = "1243";
     
     
     /**
@@ -116,10 +116,13 @@ public class DatabaseFinal {
                         }
                         switch(menuSelection){
                             case 1:
+                                Discounts.viewDiscounts(conn);
                                 break;
                             case 2:
+                                Discounts.addDiscount(conn);
                                 break;
                             case 3:
+                                Discounts.removeDiscount(conn);
                                 break;
                                 
                         }
