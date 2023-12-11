@@ -124,9 +124,9 @@ public class Customer {
             System.out.println("Please enter the Customer ID: ");
             int desiredCart = scan.nextInt();
             
-            String getTotalCostInCart = "Select item_quantity, cost, amount_off  From items "
+            String getTotalCostInCart = "Select items.item_id, item_quantity, cost, amount_off  From items "
                     + "Join has_in_list ON has_in_list.item_id = items.item_id "
-                    + "Join discounts ON discounts.item_id = items.item_id "
+                    + "Left Join discounts ON discounts.item_id = items.item_id "
                     + " Where has_in_list.customer_id = ?";
             
             PreparedStatement statement = conn.prepareStatement(getTotalCostInCart);
@@ -134,11 +134,16 @@ public class Customer {
             ResultSet rs = statement.executeQuery();
             double totalCost = 0;
             while (rs.next()) {
-                System.out.println(rs.getInt(1));
-                System.out.println(rs.getDouble(2));
-                System.out.println(rs.getDouble(3));
-                totalCost += rs.getInt(1) * (rs.getDouble(2) - rs.getDouble(3));
-                System.out.println(totalCost);
+                int itemID = rs.getInt("item_id");
+                PreparedStatement state = conn.prepareStatement("SELECT amount_off FROM items join discounts on items.item_id = discounts.item_id where items.item_id = ?");
+                state.setInt(1,itemID);
+                ResultSet maxDiscount = state.executeQuery();
+                double discount = 0.00;
+                while(maxDiscount.next()){
+                    if(maxDiscount.getDouble("amount_off") > discount)
+                        discount = maxDiscount.getDouble("amount_off");
+                }
+                totalCost += rs.getInt("item_quantity") * (rs.getDouble("cost") - discount);
             }
             System.out.println("Your Total Cost: " + moneyFormat.format(totalCost));
         } catch (ClassNotFoundException e) {
