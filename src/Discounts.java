@@ -23,9 +23,9 @@ import java.text.DecimalFormat;
  */
 public class Discounts {
     //Database Connection Information
-    private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
+    private static String url = "jdbc:postgresql://localhost:5432/Final";
     private static String user = "postgres";
-    private static String password = "ColeyJ56!";  
+    private static String password = "1243";  
     private static Scanner scan = new Scanner(System.in);
     private static String garbage;
     
@@ -54,28 +54,32 @@ public class Discounts {
             System.out.println("Enter Store Name: \n");
             String storeName = scan.next();
             //Get Store ID
-            String select = "SELECT * FROM store WHERE name = '" + storeName + "';";
-            Statement selectStatement = connection.createStatement();
-            ResultSet resultSet = selectStatement.executeQuery(select);
+            PreparedStatement selectStatementStoreName = connection.prepareStatement("SELECT * FROM store WHERE store_name = ?;");
+            selectStatementStoreName.setString(1, storeName);
+            ResultSet resultSet = selectStatementStoreName.executeQuery();
+            resultSet.next();
             int storeID = resultSet.getInt("store_id");
             //Get Item Name
             System.out.println("Enter Item Name: \n");
             String itemName = scan.next();
             //Get Item ID
-            select = "SELECT * FROM items WHERE name = '" + itemName + "';";
-            selectStatement = connection.createStatement();
-            resultSet = selectStatement.executeQuery(select);
+            PreparedStatement selectItemName = connection.prepareStatement("SELECT * FROM items WHERE item_name = ?;");
+            selectItemName.setString(1, itemName);
+            resultSet = selectItemName.executeQuery();
+            resultSet.next();
             int itemID = resultSet.getInt("item_id");
             //Check that store sells item
-            select = "SELECT count(*) FROM sells WHERE item_id = " + itemID + "AND store_id = " + storeID + ";";
-            selectStatement = connection.createStatement();
-            resultSet = selectStatement.executeQuery(select);
+            PreparedStatement selectSells = connection.prepareStatement("SELECT count(*) FROM sells WHERE item_id = ? AND store_id = ? ;");
+            selectSells.setInt(1, itemID);
+            selectSells.setInt(2, storeID);
+            resultSet = selectSells.executeQuery();
+            resultSet.next();
             if(resultSet.getInt("count") < 1)
                 throw new SQLException("Store Does Not Sell Item");
             
             //Get Start Date
             boolean validInput= false;
-            String startDate = "null";
+            java.sql.Timestamp startDate2 = null;
             while(!validInput){
                System.out.println("Would you like to enter a start date? (Y/N)");
             String input = scan.next();
@@ -104,14 +108,14 @@ public class Discounts {
                         garbage = scan.next();
                     }
                     int startDay = scan.nextInt();
-                    startDate = startYear + "-" + startMonth + "-" + startDay;
+                    //startDate = startYear + "-" + startMonth + "-" + startDay;
+                    startDate2 = new Timestamp(startYear, startMonth, startDay, 0, 0, 0, 0);
                     validInput = true;
                     break;
                 case "N":
                 case "n":
                 case "No":
                 case "no":
-                    startDate = "null";
                     validInput = true;
                     break;
                 default:
@@ -121,7 +125,7 @@ public class Discounts {
             }
             
             //Get End Date
-            String endDate = "null";
+            java.sql.Timestamp endDate2 = null;
             validInput= false;
             while(!validInput){
                System.out.println("Would you like to enter an end date? (Y/N)");
@@ -151,14 +155,14 @@ public class Discounts {
                         garbage = scan.next();
                     }
                     int endDay = scan.nextInt();
-                    endDate = endYear + "-" + endMonth + "-" + endDay;
+                    endDate2 = new Timestamp(endYear, endMonth, endDay, 0, 0, 0, 0);
+                    //endDate = endYear + "-" + endMonth + "-" + endDay;
                     validInput = true;
                     break;
                 case "N":
                 case "n":
                 case "No":
                 case "no":
-                    endDate = "null";
                     validInput = true;
                     break;
                 default:
@@ -174,15 +178,22 @@ public class Discounts {
             }
             double reduction = scan.nextDouble();
             //Insert Record
-            String insert = "INSERT INTO discounts VALUES (default, " + storeID + ", " + itemID + ", '" + startDate + "', " + endDate + ", " + reduction + ")";
+            PreparedStatement insertDiscount = connection.prepareStatement("INSERT INTO discounts VALUES (default, ?, ?, ?, ?, ?)");
+            //String insert = "INSERT INTO discounts VALUES (default, " + storeID + ", " + itemID + ", '" + startDate + "', " + endDate + ", " + reduction + ")";
+            insertDiscount.setInt(1, storeID);
+            insertDiscount.setInt(2, itemID);
+            insertDiscount.setTimestamp(3, startDate2);
+            insertDiscount.setTimestamp(4, endDate2);
+            insertDiscount.setDouble(5, reduction);
             Statement statement = connection.createStatement();
-            statement.executeUpdate(insert);
+            insertDiscount.executeUpdate();
+            System.out.println("Discount Added Sucessfully");
         }
         
         catch(SQLException sqlex){System.out.println(sqlex.getMessage());}
     }
     
-    public static void removeDiscount(Connection connection, int id){
+    public static void removeDiscount(Connection connection){
      try{
         String delete = "";
         System.out.println("How would you like to delete?\n"
@@ -199,7 +210,10 @@ public class Discounts {
                         garbage = scan.next();
                     }
                     int discountID = scan.nextInt();
-                    delete = "DELETE FROM discounts WHERE discount_id = " + discountID + ";";
+                    PreparedStatement deleteStatement = connection.prepareStatement("DELETE FROM discounts WHERE discount_id = ?");
+                    deleteStatement.setInt(1, discountID);
+                    deleteStatement.executeUpdate();
+                    //delete = "DELETE FROM discounts WHERE discount_id = " + discountID + ";";
                     
                     validInput = true;
                     break;
@@ -210,17 +224,25 @@ public class Discounts {
                     String storeName = scan.next();
                     
                     //Get Store ID
-                    String select = "SELECT * FROM store WHERE name = '" + storeName + "';";
-                    Statement selectStatement = connection.createStatement();
-                    ResultSet resultSet = selectStatement.executeQuery(select);
+                    PreparedStatement selectStatementGetStore = connection.prepareStatement("SELECT * FROM store WHERE store_name = ?;");
+                    //String select = "SELECT * FROM store WHERE name = '" + storeName + "';";
+                    selectStatementGetStore.setString(1, storeName);
+                    //Statement selectStatement = connection.createStatement();
+                    ResultSet resultSet = selectStatementGetStore.executeQuery();
+                    resultSet.next();
                     int storeID = resultSet.getInt("store_id");
                     //Get Item ID
-                    select = "SELECT * FROM items WHERE name = '" + itemName + "';";
-                    selectStatement = connection.createStatement();
-                    resultSet = selectStatement.executeQuery(select);
+                    PreparedStatement selectStatementGetItem = connection.prepareStatement("SELECT * FROM items WHERE item_name = ?;");
+                    selectStatementGetItem.setString(1, itemName);
+                    resultSet = selectStatementGetItem.executeQuery();
+                    resultSet.next();
                     int itemID = resultSet.getInt("item_id");
                     
-                    delete = "DELETE FROM discounts WHERE item_id = " + itemID + "AND" + "store_id = " + storeID + ";";
+                    
+                    PreparedStatement deleteStatement2 = connection.prepareStatement("DELETE FROM discounts WHERE item_id = ? AND store_id = ?;");
+                    deleteStatement2.setInt(1, itemID);
+                    deleteStatement2.setInt(2, storeID);
+                    deleteStatement2.executeUpdate();
                     validInput = true;
                     break;
                 default:
