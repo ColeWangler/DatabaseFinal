@@ -1,13 +1,8 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
-
-
 import java.sql.*;
 import java.text.DecimalFormat;
 import java.util.Calendar;
 import java.util.Scanner;
+import java.util.NoSuchElementException;
 
 /**
  *
@@ -42,21 +37,27 @@ public class DatabaseFinal {
             int menuSelection = -1;
             boolean validOption = false;
             do{
+                    menuSelection = -1;
                     System.out.println("Please Enter 1 to Add A New Customer: ");
-                    System.out.println("Please Enter 2 to View Items in a customers cart: ");
-                    System.out.println("Please enter 3 to Get Total Cost of a customers cart:");
-                    System.out.println("Please press 4 to Add Item to a customers Cart: ");
-                    System.out.println("Please press 5 to Remove Item to a customers Cart: ");
-                    System.out.println("Please press 6 to Update Quantity Of Item in a customers Cart: ");
+                    System.out.println("Please Enter 2 to View Items in a customer's cart: ");
+                    System.out.println("Please enter 3 to Get Total Cost of a customer's cart:");
+                    System.out.println("Please press 4 to Add Item to a customer's Cart: ");
+                    System.out.println("Please press 5 to Remove Item from a customer's Cart: ");
+                    System.out.println("Please press 6 to Update Quantity Of Item in a customer's Cart: ");
                     System.out.println("Please press 7 to View Stores: ");
                     System.out.println("Please press 8 to View Store Items: ");
                     System.out.println("Please press 9 to Add a Store: ");
                     System.out.println("Please press 10 to Delete a Store: ");
                     System.out.println("Please press 11 to Edit a Store Inventory: ");
-                    System.out.println("Please press 12 to Exit the Application: ");
+                    System.out.println("Please press 12 to Add to Items: ");
+                    System.out.println("Please press 13 to Delete Itmes: ");
+                    System.out.println("Please press 14 to View Discounts: ");
+                    System.out.println("Please press 15 to Add a Discount: ");
+                    System.out.println("Please press 16 to Remove a Discount: ");
+                    System.out.println("Please press 17 to Exit the Application: ");
                     System.out.print("\nEnter Option: ");
                     
-                    if( scan.hasNextInt()){
+                   if( scan.hasNextInt()){
                         validOption = true;
                         menuSelection = scan.nextInt();
                     }
@@ -64,7 +65,10 @@ public class DatabaseFinal {
                         System.out.println("Not a valid option.");
                         String garbage = scan.nextLine();
                     }
-            } while (validOption == false);
+                    
+            }while(validOption == false);   
+                   
+        
             
             int customerID;
             switch (menuSelection) {
@@ -101,7 +105,22 @@ public class DatabaseFinal {
                 case 11:
                     Store.editInventory(conn);
                     break;
-                case 12:
+                case 12: 
+                    Items.addItem();
+                    break;
+                case 13: 
+                    Items.deleteItem(conn);
+                    break;
+                case 14:
+                    Discounts.viewDiscounts(conn);
+                    break;
+                case 15:
+                    Discounts.addDiscount(conn);
+                    break;
+                case 16:
+                    Discounts.removeDiscount(conn);
+                    break;
+                case 17:
                     exit = true;
                     try{conn.close();}catch(SQLException sqlex){}
                     break;
