@@ -1,5 +1,4 @@
 import java.sql.*;
-import java.text.DecimalFormat;
 import java.util.Scanner;
 
 /**
@@ -33,29 +32,6 @@ public class Items {
                 pstmt.setDouble(3, cost);
 
                 pstmt.executeUpdate();
-            }
-
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println(e.toString());
-        }
-    }
-
-    public static void viewCart() {
-        try (Connection conn = establishConnection()) {
-            DecimalFormat moneyFormat = new DecimalFormat("$0.00");
-
-            String viewItems = "SELECT * FROM items";
-
-            try (Statement statement = conn.createStatement();
-                 ResultSet rs = statement.executeQuery(viewItems)) {
-
-                while (rs.next()) {
-                    System.out.printf("Item ID: %d%n", rs.getInt("item_id"));
-                    System.out.printf("Item Name: %s%n", rs.getString("item_name"));
-                    System.out.printf("Description: %s%n", rs.getString("description"));
-                    System.out.printf("Cost: %s%n", moneyFormat.format(rs.getDouble("cost")));
-                    System.out.println("----------------------");
-                }
             }
 
         } catch (ClassNotFoundException | SQLException e) {
