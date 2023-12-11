@@ -1,16 +1,16 @@
 import java.sql.*;
-import java.text.DecimalFormat;
 import java.util.Scanner;
 
 /**
  *
  * @author jacobgerhart
+ * @version 2023.12.10
  */
 public class Items {
 
     private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
     private static String user = "postgres";
-    private static String password = "ColeyJ56!";
+    private static String password = "Archer54";
 
     public static void addItem() {
         try (Connection conn = establishConnection();
@@ -32,29 +32,6 @@ public class Items {
                 pstmt.setDouble(3, cost);
 
                 pstmt.executeUpdate();
-            }
-
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println(e.toString());
-        }
-    }
-
-    public static void viewCart() {
-        try (Connection conn = establishConnection()) {
-            DecimalFormat moneyFormat = new DecimalFormat("$0.00");
-
-            String viewItems = "SELECT * FROM items";
-
-            try (Statement statement = conn.createStatement();
-                 ResultSet rs = statement.executeQuery(viewItems)) {
-
-                while (rs.next()) {
-                    System.out.println("Item ID: " + rs.getInt("item_id"));
-                    System.out.println("Item Name: " + rs.getString("item_name"));
-                    System.out.println("Description: " + rs.getString("description"));
-                    System.out.println("Cost: " + moneyFormat.format(rs.getDouble("cost")));
-                    System.out.println("----------------------\n");
-                }
             }
 
         } catch (ClassNotFoundException | SQLException e) {
