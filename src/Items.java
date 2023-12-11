@@ -1,5 +1,6 @@
 import java.sql.*;
 import java.util.Scanner;
+import java.util.NoSuchElementException;
 
 /**
  *
@@ -14,15 +15,18 @@ public class Items {
 
     public static void addItem() {
         try (Connection conn = establishConnection();
-             Scanner scan = new Scanner(System.in)) {
+             ) {
 
+            Scanner scan = new Scanner(System.in);
             // Getting item information...
-            System.out.println("Please enter the item name: ");
+            System.out.print("Please enter the item name: ");
             String itemName = scan.nextLine();
-            System.out.println("Please enter the item description: ");
+            System.out.print("Please enter the item description: ");
             String description = scan.nextLine();
-            System.out.println("Please enter the item cost: ");
-            double cost = scan.nextDouble();
+            System.out.print("Please enter the item cost: ");
+            String doubleLine = scan.nextLine();
+            double cost = Double.parseDouble(doubleLine);
+            
 
             String insertIntoItems = "INSERT INTO items (item_name, description, cost) VALUES (?, ?, ?)";
 
@@ -39,33 +43,48 @@ public class Items {
         }
     }
 
-    public static void deleteItem() {
-        try (Connection conn = establishConnection();
-             Scanner scan = new Scanner(System.in)) {
+    public static void deleteItem(Connection conn){
+        try{
+            String itemName = readString("Enter name of item to delete: ");
+            int itemID = getItemID(itemName, conn);
+            PreparedStatement itemStatement = conn.prepareStatement("DELETE FROM items WHERE items.item_id = ?");
+            itemStatement.setInt(1, itemID);
+            itemStatement.executeUpdate();
+        }catch(SQLException sqlex){sqlex.printStackTrace();}
+        catch(IllegalArgumentException iae){System.out.println(iae.getMessage());}
 
-            System.out.println("Please enter the item ID to delete: ");
-            int itemId = scan.nextInt();
-
-            String deleteItem = "DELETE FROM items WHERE item_id = ?";
-
-            try (PreparedStatement pstmt = conn.prepareStatement(deleteItem)) {
-                pstmt.setInt(1, itemId);
-
-                int rowsAffected = pstmt.executeUpdate();
-                if (rowsAffected > 0) {
-                    System.out.println("Item deleted successfully.");
-                } else {
-                    System.out.println("Item not found with ID: " + itemId);
-                }
-            }
-
-        } catch (ClassNotFoundException | SQLException e) {
-            System.out.println(e.toString());
-        }
     }
 
     private static Connection establishConnection() throws ClassNotFoundException, SQLException {
         Class.forName("org.postgresql.Driver");
         return DriverManager.getConnection(url, user, password);
+    }
+    
+    private static int getItemID(String itemName, Connection conn) throws IllegalArgumentException{
+        ResultSet rs;
+        int itemID = -1;
+        try{
+            String idQuery = "SELECT item_id FROM items where lower(item_name) like  ?";
+            PreparedStatement idStatement = conn.prepareStatement(idQuery);
+            idStatement.setString(1,itemName.toLowerCase());
+            rs = idStatement.executeQuery();
+            if(!rs.next()) throw new IllegalArgumentException("Item not found in item list.");
+            itemID = rs.getInt("item_id");
+        }
+        catch(SQLException sqlex){}
+        if(itemID == -1) throw new IllegalArgumentException("Item not found in item list.");
+        return itemID;
+    }
+    
+    private static String readString(String prompt){
+        Scanner scan = new Scanner(System.in);
+        System.out.print(prompt);
+        String returnStr = scan.nextLine().trim();
+        while(returnStr.isBlank()){
+            System.out.println("No input given. Try again.");
+            System.out.print(prompt);
+            returnStr = scan.nextLine().trim();
+        }
+        return returnStr;
     }
 }
