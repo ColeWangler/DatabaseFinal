@@ -5,7 +5,7 @@ import java.util.Scanner;
 /**
  *
  * @author jacobgerhart
- * @version 2023.12.09
+ * @version 2023.12.10
  */
 public class Items {
 
@@ -50,11 +50,11 @@ public class Items {
                  ResultSet rs = statement.executeQuery(viewItems)) {
 
                 while (rs.next()) {
-                    System.out.println("Item ID: " + rs.getInt("item_id"));
-                    System.out.println("Item Name: " + rs.getString("item_name"));
-                    System.out.println("Description: " + rs.getString("description"));
-                    System.out.println("Cost: " + moneyFormat.format(rs.getDouble("cost")));
-                    System.out.println("----------------------\n");
+                    System.out.printf("Item ID: %d%n", rs.getInt("item_id"));
+                    System.out.printf("Item Name: %s%n", rs.getString("item_name"));
+                    System.out.printf("Description: %s%n", rs.getString("description"));
+                    System.out.printf("Cost: %s%n", moneyFormat.format(rs.getDouble("cost")));
+                    System.out.println("----------------------");
                 }
             }
 
