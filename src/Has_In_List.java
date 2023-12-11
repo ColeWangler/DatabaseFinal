@@ -1,15 +1,9 @@
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Scanner;
-
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 
 /**
  *
@@ -19,7 +13,7 @@ public class Has_In_List {
         //Database Connection Information
     private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
     private static String user = "postgres";
-    private static String password = "ColeyJ56!";  
+    private static String password = "Archer54";  
     
     public static void addItemToCart(){
         try {
@@ -35,7 +29,7 @@ public class Has_In_List {
             int item_id = scan.nextInt();
             System.out.println("Please enter the quantity of item: ");
             int quantity = scan.nextInt();
-            String insertIntoList = "INSERT INTO has_in_list (customer_id, item_id, item_ quantity) Values (?, ?, ?)";
+            String insertIntoList = "INSERT INTO has_in_list (customer_id, item_id, item_quantity) Values (?, ?, ?)";
 
             PreparedStatement pstmt = conn.prepareStatement(insertIntoList);
             pstmt.setInt(1, customer_id);
