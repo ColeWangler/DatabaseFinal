@@ -8,11 +8,6 @@ import java.util.Scanner;
 import java.sql.*;
 import java.text.DecimalFormat;
 
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
-
 /**
  *
  * @author Cole Wangler
@@ -21,7 +16,7 @@ public class Customer {
     //Database Connection Information
     private static String url = "jdbc:postgresql://localhost:5432/ShoppingCart";
     private static String user = "postgres";
-    private static String password = "ColeyJ56!";  
+    private static String password = "Archer54";  
     
 
     //Add Customer to Database method
